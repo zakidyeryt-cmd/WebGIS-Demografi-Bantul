@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>WebGIS Demografi Kabupaten Bantul</title>
+
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+    /* ============================================================
+       RESET & BASE — Graphite GIS Pro
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg:            #111111;
+        --sidebar:       #1A1A1A;
+        --topbar-bg:     #161616;
+        --card:          #222222;
+        --card-2:        #282828;
+        --card-3:        #2F2F2F;
+        --popup-bg:      #1E1E1E;
+        --popup-key-bg:  #1A1A1A;
+        --border-lo:     #262626;
+        --border:        #333333;
+        --border-hi:     #444444;
+        --text:          #F0F0F0;
+        --text-sec:      #C8C8C8;
+        --text-muted:    #888888;
+        --text-dim:      #505050;
+        --accent:        #7CB342;
+        --accent-h:      #8BC34A;
+        --accent-dark:   #558B2F;
+        --accent-dim:    rgba(124,179,66,0.12);
+        --accent-dim2:   rgba(124,179,66,0.06);
+        --accent-border: rgba(124,179,66,0.28);
+        --warn:          #FFA726;
+        --warn-dim:      rgba(255,167,38,0.12);
+        --warn-border:   rgba(255,167,38,0.25);
+        --sidebar-w:     310px;
+        --topbar-h:      40px;
+        --t:             150ms ease;
+        --t-slow:        220ms ease;
+        --r:             3px;
+        --r-sm:          2px;
+        --r-xs:          1px;
+        --shadow-md:     0 2px 8px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.65);
+        --shadow-lg:     0 4px 20px rgba(0,0,0,0.65), 0 1px 4px rgba(0,0,0,0.7);
+    }
+
+    html, body {
+        width: 100%; height: 100%; overflow: hidden;
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        font-size: 12.5px; line-height: 1.5;
+        background: var(--bg); color: var(--text);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    #app { display: flex; width: 100%; height: 100%; position: relative; }
+
+    /* ── Sidebar ── */
+    #sidebar {
+        width: var(--sidebar-w); height: 100%;
+        background: var(--sidebar);
+        border-right: 1px solid var(--border);
+        display: flex; flex-direction: column; flex-shrink: 0;
+        overflow: hidden;
+        transition: width var(--t-slow);
+        z-index: 1001;
+    }
+    #sidebar.collapsed { width: 0; }
+
+    .sidebar-header {
+        background: #161616;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .brand-block {
+        display: flex; align-items: center; gap: 10px;
+        padding: 11px 13px 10px;
+    }
+    .brand-mark {
+        width: 29px; height: 29px;
+        background: var(--accent); border-radius: var(--r);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; box-shadow: var(--shadow-md);
+    }
+    .brand-mark svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .brand-text { min-width: 0; flex: 1; }
+    .brand-name { font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-region { font-size: 9.5px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.7px; margin-top: 1px; }
+    .brand-context { padding: 6px 13px 8px; border-top: 1px solid var(--border-lo); background: #181818; font-size: 10px; color: var(--text-muted); line-height: 1.6; }
+
+    .sidebar-body {
+        flex: 1; overflow-y: auto; overflow-x: hidden;
+        scrollbar-width: thin; scrollbar-color: #333 transparent;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 6px, black calc(100% - 6px), transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0px, black 6px, black calc(100% - 6px), transparent 100%);
+    }
+    .sidebar-body::-webkit-scrollbar { width: 3px; }
+    .sidebar-body::-webkit-scrollbar-thumb { background: #333; }
+
+    .panel { border-bottom: 1px solid var(--border-lo); padding: 10px 11px 11px; }
+    .panel:last-child { border-bottom: none; }
+    .panel-hd { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-lo); }
+    .panel-hd-line { width: 2px; height: 10px; background: var(--accent); flex-shrink: 0; }
+    .panel-hd-label { font-size: 8.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-muted); flex: 1; }
+
+    /* ── Field Switcher — age groups ── */
+    .field-list { display: flex; flex-direction: column; gap: 2px; }
+
+    .field-btn {
+        display: flex; align-items: center; gap: 9px;
+        padding: 6px 8px; border-radius: var(--r);
+        border: 1px solid transparent; background: transparent;
+        cursor: pointer; width: 100%; text-align: left;
+        color: var(--text-muted); font-family: inherit;
+        transition: background var(--t), border-color var(--t), color var(--t);
+    }
+    .field-btn:hover { background: var(--card); border-color: var(--border-lo); color: var(--text-sec); }
+    .field-btn.active { background: var(--accent-dim2); border-color: var(--accent-border); color: var(--text); }
+
+    .fi {
+        width: 12px; height: 12px;
+        border: 1.5px solid var(--border-hi); border-radius: var(--r-xs);
+        flex-shrink: 0; background: var(--card-2);
+        position: relative; display: flex; align-items: center; justify-content: center;
+        transition: background var(--t), border-color var(--t);
+    }
+    .field-btn.active .fi { background: var(--accent); border-color: var(--accent); }
+    .field-btn.active .fi::after {
+        content: ''; display: block;
+        width: 5px; height: 3.5px;
+        border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff;
+        transform: rotate(-46deg) translate(0.5px, -0.5px);
+    }
+    .fb-text { flex: 1; min-width: 0; }
+    .fb-name { font-size: 11.5px; font-weight: 500; line-height: 1.3; color: inherit; }
+    .fb-key { font-size: 9.5px; color: var(--text-dim); font-family: 'Consolas', monospace; margin-top: 1px; }
+    .field-btn.active .fb-name { color: var(--accent-h); font-weight: 600; }
+    .field-btn.active .fb-key  { color: var(--accent-dark); }
+
+    /* ── Choropleth Legend ── */
+    #legend-container { display: flex; flex-direction: column; gap: 1px; }
+    .legend-choropleth {
+        display: flex; flex-direction: column; gap: 3px;
+        padding: 2px 4px;
+    }
+    .legend-gradient-bar {
+        height: 12px; border-radius: var(--r-xs);
+        border: 1px solid rgba(0,0,0,0.25);
+        width: 100%;
+    }
+    .legend-gradient-labels {
+        display: flex; justify-content: space-between;
+        font-size: 9.5px; color: var(--text-muted);
+        font-family: 'Consolas', monospace;
+    }
+    .legend-gradient-title {
+        font-size: 10px; font-weight: 600; color: var(--text-sec);
+        margin-bottom: 2px;
+    }
+    /* Ranked kecamatan list */
+    .legend-rank-list { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; }
+    .legend-rank-item {
+        display: flex; align-items: center; gap: 7px;
+        padding: 4px 6px; border-radius: var(--r); cursor: pointer;
+        transition: background var(--t);
+    }
+    .legend-rank-item:hover { background: var(--card); }
+    .legend-rank-swatch { width: 11px; height: 11px; border-radius: var(--r-xs); flex-shrink: 0; border: 1px solid rgba(0,0,0,0.3); }
+    .legend-rank-name { font-size: 11px; color: var(--text-sec); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .legend-rank-val { font-size: 10px; color: var(--text-dim); font-family: 'Consolas', monospace; font-variant-numeric: tabular-nums; }
+
+    /* ── Statistics ── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .stat-card {
+        background: var(--card-2); border: 1px solid var(--border-lo);
+        border-radius: var(--r); padding: 8px 9px 7px;
+        transition: border-color var(--t);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+    }
+    .stat-card:hover { border-color: var(--border); }
+    .stat-card.full { grid-column: 1 / -1; }
+    .stat-value {
+        font-size: 17px; font-weight: 700; color: var(--text);
+        line-height: 1.1; margin-bottom: 3px;
+        font-family: 'Consolas', monospace; font-variant-numeric: tabular-nums;
+        letter-spacing: -0.5px;
+    }
+    .stat-label { font-size: 8.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.9px; }
+    .stat-dominant { font-size: 11px; font-weight: 600; color: var(--accent); line-height: 1.3; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-theme { background: var(--accent-dim2); border-color: var(--accent-border); }
+    .stat-theme-val { font-size: 10.5px; font-weight: 600; color: var(--accent-h); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+
+    /* ── Basemap ── */
+    .basemap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .basemap-btn {
+        padding: 7px 5px 6px; border-radius: var(--r);
+        border: 1px solid var(--border-lo); background: var(--card-2);
+        cursor: pointer; font-size: 10.5px; font-weight: 500;
+        color: var(--text-muted); font-family: inherit;
+        transition: background var(--t), border-color var(--t), color var(--t);
+        display: flex; flex-direction: column; align-items: center; gap: 4px; line-height: 1.2;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    }
+    .basemap-btn:hover { background: var(--card-3); border-color: var(--border-hi); color: var(--text-sec); }
+    .basemap-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent-h); font-weight: 600; }
+    .bm-icon { width: 16px; height: 12px; opacity: 0.5; flex-shrink: 0; display: flex; align-items: center; }
+    .bm-icon svg { width: 16px; height: 12px; }
+    .basemap-btn.active .bm-icon { opacity: 0.85; }
+
+    .sidebar-footer { padding: 7px 13px 8px; border-top: 1px solid var(--border-lo); flex-shrink: 0; background: #161616; }
+    .sidebar-footer p { font-size: 9.5px; color: var(--text-dim); line-height: 1.7; }
+    .sidebar-footer strong { color: var(--text-muted); font-weight: 600; }
+
+    /* ── Map ── */
+    #map-wrap { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+    #map { width: 100%; height: 100%; }
+
+    /* ── Topbar ── */
+    #topbar {
+        position: absolute; top: 0; left: 0; right: 0;
+        height: var(--topbar-h); background: var(--topbar-bg);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 0; padding: 0 6px;
+        z-index: 900; box-shadow: 0 1px 5px rgba(0,0,0,0.6);
+    }
+    .tb-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; margin: 0 5px; }
+
+    #sidebar-toggle {
+        width: 30px; height: 30px; border-radius: var(--r);
+        border: 1px solid transparent; background: transparent;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; color: var(--text-muted);
+        transition: background var(--t), border-color var(--t), color var(--t);
+    }
+    #sidebar-toggle:hover { background: var(--card); border-color: var(--border-lo); color: var(--text-sec); }
+    #sidebar-toggle svg { width: 13px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: square; }
+
+    #search-wrap { flex: 1; max-width: 300px; position: relative; margin-left: 2px; }
+    .search-icon { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; stroke: var(--text-dim); stroke-width: 1.8; fill: none; pointer-events: none; }
+    #search-input {
+        width: 100%; height: 26px; background: var(--card-2);
+        border: 1px solid var(--border-lo); border-radius: var(--r);
+        padding: 0 8px 0 25px; font-size: 11.5px; font-family: inherit;
+        color: var(--text); outline: none;
+        transition: border-color var(--t), background var(--t);
+    }
+    #search-input::placeholder { color: var(--text-dim); }
+    #search-input:focus { border-color: var(--accent-border); background: #252525; }
+
+    #search-results {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: var(--r); display: none; overflow: hidden;
+        box-shadow: var(--shadow-lg); z-index: 999;
+        max-height: 220px; overflow-y: auto;
+    }
+    .search-result-item { padding: 6px 11px; font-size: 11.5px; cursor: pointer; border-bottom: 1px solid var(--border-lo); transition: background var(--t); color: var(--text-sec); }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--card-3); color: var(--text); }
+    .search-result-item strong { display: block; color: var(--text); font-weight: 600; margin-bottom: 1px; }
+    .search-result-sub { font-size: 10px; color: var(--text-dim); }
+
+    #active-theme-badge {
+        display: flex; align-items: center; gap: 5px; padding: 3px 8px;
+        border-radius: var(--r); background: var(--accent-dim);
+        border: 1px solid var(--accent-border);
+        font-size: 10px; font-weight: 600; color: var(--accent-h);
+        flex-shrink: 0; white-space: nowrap; max-width: 200px;
+        overflow: hidden; text-overflow: ellipsis;
+    }
+    .theme-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    #zoom-controls { display: flex; border: 1px solid var(--border-lo); border-radius: var(--r); overflow: hidden; flex-shrink: 0; background: var(--card-2); }
+    .zoom-btn { width: 28px; height: 28px; border: none; background: transparent; cursor: pointer; color: var(--text-muted); font-size: 17px; font-weight: 300; font-family: inherit; display: flex; align-items: center; justify-content: center; transition: background var(--t), color var(--t); line-height: 1; }
+    #zoom-in { border-right: 1px solid var(--border-lo); }
+    .zoom-btn:hover { background: var(--card-3); color: var(--text); }
+
+    /* ── Popup ── */
+    .leaflet-popup-content-wrapper {
+        background: var(--popup-bg) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: var(--r) !important;
+        box-shadow: var(--shadow-lg) !important;
+        padding: 0 !important; overflow: hidden;
+    }
+    .leaflet-popup-tip-container { display: none !important; }
+    .leaflet-popup-close-button { top: 6px !important; right: 6px !important; color: var(--text-dim) !important; font-size: 13px !important; width: 18px !important; height: 18px !important; line-height: 18px !important; border-radius: var(--r-sm) !important; transition: color var(--t), background var(--t) !important; }
+    .leaflet-popup-close-button:hover { color: var(--text) !important; background: var(--card) !important; }
+    .leaflet-popup-content { margin: 0 !important; width: 272px !important; font-family: 'Inter', 'Segoe UI', sans-serif !important; }
+
+    .pc-head { padding: 9px 24px 8px 11px; background: var(--popup-key-bg); border-bottom: 1px solid var(--border); border-left: 3px solid var(--accent); }
+    .pc-title { font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .pc-sub { font-size: 9.5px; color: var(--text-dim); margin-top: 1px; }
+    .pc-body { padding: 0; }
+    .pc-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--border-lo); min-height: 26px; }
+    .pc-row:last-child { border-bottom: none; }
+    .pc-key { width: 100px; min-width: 100px; padding: 5px 7px 5px 11px; background: var(--popup-key-bg); border-right: 1px solid var(--border-lo); font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); display: flex; align-items: center; flex-shrink: 0; }
+    .pc-val { padding: 5px 8px; font-size: 11px; font-weight: 500; color: var(--text); display: flex; align-items: center; flex: 1; line-height: 1.35; font-family: 'Consolas', monospace; }
+    .pc-val-txt { font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: 500; }
+    .pc-foot { padding: 5px 11px; background: var(--popup-key-bg); border-top: 1px solid var(--border-lo); font-size: 9px; color: var(--text-dim); }
+
+    /* inline mini bar in popup */
+    .pop-bar-wrap { display: flex; align-items: center; gap: 6px; width: 100%; }
+    .pop-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 1px; overflow: hidden; }
+    .pop-bar-fill { height: 100%; border-radius: 1px; background: var(--accent); }
+
+    /* ── Loading ── */
+    #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 13px; transition: opacity 0.25s ease; }
+    #loading.hide { opacity: 0; pointer-events: none; }
+    .ld-mark { width: 38px; height: 38px; background: var(--accent); border-radius: var(--r); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); }
+    .ld-mark svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .ld-title { font-size: 12px; font-weight: 700; color: var(--text); text-align: center; }
+    .ld-sub { font-size: 10px; color: var(--text-muted); text-align: center; margin-top: -5px; }
+    .ld-bar { width: 110px; height: 2px; background: var(--border); overflow: hidden; }
+    .ld-bar-fill { width: 0; height: 100%; background: var(--accent); animation: ld-fill 1.25s ease forwards; }
+    @keyframes ld-fill { to { width: 100%; } }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+        :root { --sidebar-w: 272px; }
+        #sidebar { position: absolute; top: 0; left: 0; bottom: 0; z-index: 1002; }
+        #sidebar.collapsed { transform: translateX(-100%); width: var(--sidebar-w); }
+        #active-theme-badge { display: none; }
+    }
+
+    /* ── Leaflet overrides ── */
+    .leaflet-top, .leaflet-bottom { display: none !important; }
+    .leaflet-control-attribution { display: none !important; }
+    .leaflet-container { background: #0C0C0C !important; }
+    </style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading">
+    <div class="ld-mark">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+    </div>
+    <div class="ld-title">WebGIS Demografi Bantul</div>
+    <div class="ld-sub">Struktur Penduduk per Kecamatan</div>
+    <div class="ld-bar"><div class="ld-bar-fill"></div></div>
+</div>
+
+<div id="app">
+
+<!-- ================================================================
+     SIDEBAR
+================================================================ -->
+<aside id="sidebar">
+
+    <div class="sidebar-header">
+        <div class="brand-block">
+            <div class="brand-mark">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <div class="brand-name">WebGIS Demografi Kabupaten Bantul</div>
+                <div class="brand-region">D.I. Yogyakarta</div>
+            </div>
+        </div>
+        <div class="brand-context">
+            Visualisasi struktur penduduk per kelompok umur, 17 kecamatan — sumber: BPS Kabupaten Bantul
+        <div>
+            M Zaki Handyer (20)
+            2502010020
+            SPIP-A
+            KODE-C
+        </div>
+
+    </div>
+
+    <div class="sidebar-body">
+
+        <!-- Kelompok Umur Switcher -->
+        <div class="panel">
+            <div class="panel-hd">
+                <div class="panel-hd-line"></div>
+                <div class="panel-hd-label">Kelompok Umur</div>
+            </div>
+            <div class="field-list" id="field-list">
+                <!-- generated by JS -->
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="panel">
+            <div class="panel-hd">
+                <div class="panel-hd-line"></div>
+                <div class="panel-hd-label">Legenda &amp; Peringkat</div>
+            </div>
+            <div id="legend-container"></div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="panel">
+            <div class="panel-hd">
+                <div class="panel-hd-line"></div>
+                <div class="panel-hd-label">Statistik</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total">17</div>
+                    <div class="stat-label">Kecamatan</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-sum">—</div>
+                    <div class="stat-label">Total (Ribu)</div>
+                </div>
+                <div class="stat-card full">
+                    <div class="stat-dominant" id="stat-max">—</div>
+                    <div class="stat-label">Kecamatan Tertinggi</div>
+                </div>
+                <div class="stat-card full">
+                    <div class="stat-dominant" id="stat-min" style="color:var(--text-muted)">—</div>
+                    <div class="stat-label">Kecamatan Terendah</div>
+                </div>
+                <div class="stat-card full stat-theme">
+                    <div class="stat-theme-val" id="stat-theme">—</div>
+                    <div class="stat-label">Tema Aktif</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Basemap -->
+        <div class="panel">
+            <div class="panel-hd">
+                <div class="panel-hd-line"></div>
+                <div class="panel-hd-label">Basemap</div>
+            </div>
+            <div class="basemap-grid">
+                <button class="basemap-btn active" data-bm="dark">
+                    <span class="bm-icon"><svg viewBox="0 0 16 12" fill="none"><rect width="16" height="12" fill="#2A2A2A" rx="1"/><rect x="2" y="2" width="5" height="3" fill="#444" rx="0.5"/><rect x="9" y="2" width="5" height="3" fill="#444" rx="0.5"/><rect x="2" y="7" width="5" height="3" fill="#444" rx="0.5"/><rect x="9" y="7" width="5" height="3" fill="#444" rx="0.5"/></svg></span>
+                    Dark
+                </button>
+                <button class="basemap-btn" data-bm="satellite">
+                    <span class="bm-icon"><svg viewBox="0 0 16 12" fill="none"><rect width="16" height="12" fill="#1B2A1B" rx="1"/><rect x="0" y="0" width="8" height="6" fill="#2E4A2E"/><rect x="8" y="6" width="8" height="6" fill="#2E4A2E"/><rect x="8" y="0" width="8" height="6" fill="#1B3A2E"/><rect x="0" y="6" width="8" height="6" fill="#243A24"/></svg></span>
+                    Satellite
+                </button>
+                <button class="basemap-btn" data-bm="osm">
+                    <span class="bm-icon"><svg viewBox="0 0 16 12" fill="none"><rect width="16" height="12" fill="#E8E0D8" rx="1"/><path d="M0 8 Q4 5 8 7 Q12 9 16 6" stroke="#B0A898" stroke-width="1" fill="none"/><rect x="3" y="3" width="4" height="3" fill="#C8B8A8" rx="0.5"/></svg></span>
+                    OpenStreetMap
+                </button>
+                <button class="basemap-btn" data-bm="topo">
+                    <span class="bm-icon"><svg viewBox="0 0 16 12" fill="none"><rect width="16" height="12" fill="#D4E8C8" rx="1"/><path d="M2 10 L6 4 L10 7 L14 2" stroke="#7CA870" stroke-width="1" fill="none" stroke-linejoin="round"/></svg></span>
+                    Topographic
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="sidebar-footer">
+        <p>
+            <strong>STPN Yogyakarta</strong> &middot; Program SPIP<br>
+            Sumber: BPS Kabupaten Bantul &middot; Data simulasi analisis<br>
+            Leaflet &middot; qgis2web export
+        </p>
+    </div>
+
+</aside>
+
+<!-- ================================================================
+     MAP AREA
+================================================================ -->
+<div id="map-wrap">
+
+    <div id="topbar">
+        <button id="sidebar-toggle" title="Toggle Panel">
+            <svg viewBox="0 0 13 10" xmlns="http://www.w3.org/2000/svg">
+                <line x1="0" y1="1" x2="13" y2="1"/>
+                <line x1="0" y1="5" x2="13" y2="5"/>
+                <line x1="0" y1="9" x2="13" y2="9"/>
+            </svg>
+        </button>
+        <div class="tb-sep"></div>
+        <div id="search-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><line x1="20" y1="20" x2="16.2" y2="16.2"/></svg>
+            <input type="text" id="search-input" placeholder="Cari kecamatan...">
+            <div id="search-results"></div>
+        </div>
+        <div style="flex:1; min-width:8px;"></div>
+        <div id="active-theme-badge">
+            <div class="theme-dot"></div>
+            <span id="badge-text">Jumlah Total</span>
+        </div>
+        <div class="tb-sep"></div>
+        <div id="zoom-controls">
+            <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+            <button class="zoom-btn" id="zoom-out" title="Zoom Out">&#8722;</button>
+        </div>
+    </div>
+
+    <div id="map" style="padding-top:40px;"></div>
+
+</div>
+
+</div><!-- /app -->
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script src="js/qgis2web_expressions.js"></script>
+<script src="js/leaflet.js"></script>
+<script src="js/L.Control.Layers.Tree.min.js"></script>
+<script src="js/leaflet.rotatedMarker.js"></script>
+<script src="js/leaflet.pattern.js"></script>
+<script src="js/leaflet.photon.js"></script>
+<script src="js/Autolinker.min.js"></script>
+<script src="data/Bantul_1.js"></script>
+
+<script>
+/* ============================================================
+   FIELD DEFINITIONS — 17 age groups + total
+============================================================ */
+const FIELDS = [
+    { key: 'Sheet1_Jumlah (Ribu jiwa)',    label: 'Jumlah Total',   short: 'Total' },
+    { key: 'Sheet1_0-4 thn (Ribu jiwa)',   label: 'Usia 0 – 4 thn',  short: '0-4' },
+    { key: 'Sheet1_5-9 thn (Ribu jiwa)',   label: 'Usia 5 – 9 thn',  short: '5-9' },
+    { key: 'Sheet1_10-14 thn (Ribu jiwa)', label: 'Usia 10 – 14 thn', short: '10-14' },
+    { key: 'Sheet1_15-19 thn (Ribu jiwa)', label: 'Usia 15 – 19 thn', short: '15-19' },
+    { key: 'Sheet1_20-24 thn (Ribu jiwa)', label: 'Usia 20 – 24 thn', short: '20-24' },
+    { key: 'Sheet1_25-29 thn (Ribu jiwa)', label: 'Usia 25 – 29 thn', short: '25-29' },
+    { key: 'Sheet1_30-34 thn (Ribu jiwa)', label: 'Usia 30 – 34 thn', short: '30-34' },
+    { key: 'Sheet1_35-39 thn (Ribu jiwa)', label: 'Usia 35 – 39 thn', short: '35-39' },
+    { key: 'Sheet1_40-44 thn (Ribu jiwa)', label: 'Usia 40 – 44 thn', short: '40-44' },
+    { key: 'Sheet1_45-49 thn (Ribu jiwa)', label: 'Usia 45 – 49 thn', short: '45-49' },
+    { key: 'Sheet1_50-54 thn (Ribu jiwa)', label: 'Usia 50 – 54 thn', short: '50-54' },
+    { key: 'Sheet1_55-59 thn (Ribu jiwa)', label: 'Usia 55 – 59 thn', short: '55-59' },
+    { key: 'Sheet1_60-64 thn (Ribu jiwa)', label: 'Usia 60 – 64 thn', short: '60-64' },
+    { key: 'Sheet1_65-69 thn (Ribu jiwa)', label: 'Usia 65 – 69 thn', short: '65-69' },
+    { key: 'Sheet1_70-75 thn (Ribu jiwa)', label: 'Usia 70 – 75 thn', short: '70-75' },
+    { key: 'Sheet1_75+ thn (Ribu jiwa)',   label: 'Usia 75+ thn',    short: '75+' },
+];
+
+/* ============================================================
+   CHOROPLETH COLOR SCALE
+   5-class sequential: light olive → dark green
+============================================================ */
+const SCALE = ['#C5E1A5','#8BC34A','#558B2F','#33691E','#1B5E20'];
+
+function getScaleColor(val, min, max) {
+    if (max === min) return SCALE[2];
+    var t = (val - min) / (max - min);
+    var idx = Math.min(Math.floor(t * SCALE.length), SCALE.length - 1);
+    return SCALE[idx];
+}
+
+function getScaleColorGrad(t) {
+    var idx = Math.min(Math.floor(t * SCALE.length), SCALE.length - 1);
+    return SCALE[idx];
+}
+
+/* ============================================================
+   MAP INIT
+============================================================ */
+var map = L.map('map', {
+    zoomControl: false,
+    maxZoom: 18, minZoom: 1,
+    preferCanvas: true
+}).fitBounds([
+    [-8.028067, 110.211499],
+    [-7.767715, 110.521309]
+]);
+
+var autolinker = new Autolinker({ truncate: { length: 30, location: 'smart' } });
+
+/* ============================================================
+   BASEMAPS
+============================================================ */
+var basemaps = {
+    dark: L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { minZoom:1, maxZoom:18, attribution:'' }),
+    satellite: L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { minZoom:1, maxZoom:18, attribution:'' }),
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { minZoom:1, maxZoom:18, attribution:'' }),
+    topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { minZoom:1, maxZoom:17, attribution:'' })
+};
+var currentBasemap = 'dark';
+basemaps.dark.addTo(map);
+
+function switchBasemap(key) {
+    if (key === currentBasemap) return;
+    map.removeLayer(basemaps[currentBasemap]);
+    basemaps[key].addTo(map);
+    basemaps[key].bringToBack();
+    currentBasemap = key;
+    document.querySelectorAll('.basemap-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.bm === key);
+    });
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+var currentField = FIELDS[0];
+var geoLayer = null;
+
+/* ============================================================
+   GET VALUES + RANGE for current field
+============================================================ */
+function getFieldValues(fieldKey) {
+    var vals = {};
+    json_Bantul_1.features.forEach(function(f) {
+        var name = f.properties['WADMKC'];
+        var raw  = f.properties[fieldKey];
+        vals[name] = parseFloat(raw) || 0;
+    });
+    return vals;
+}
+
+function getRange(vals) {
+    var arr = Object.values(vals);
+    return { min: Math.min.apply(null, arr), max: Math.max.apply(null, arr) };
+}
+
+/* ============================================================
+   STYLE FUNCTION — choropleth
+============================================================ */
+function styleFeature(feature) {
+    var vals = getFieldValues(currentField.key);
+    var range = getRange(vals);
+    var name  = feature.properties['WADMKC'];
+    var val   = vals[name] || 0;
+    var fill  = getScaleColor(val, range.min, range.max);
+    return {
+        pane:        'pane_Bantul_1',
+        opacity:     1,
+        color:       '#1A1A1A',
+        weight:      0.8,
+        fill:        true,
+        fillOpacity: 0.82,
+        fillColor:   fill,
+        interactive: true
+    };
+}
+
+/* ============================================================
+   POPUP BUILDER
+============================================================ */
+function buildPopup(props) {
+    var name = props['WADMKC'] || '—';
+    var vals = getFieldValues(currentField.key);
+    var range = getRange(vals);
+    var val   = parseFloat(props[currentField.key]) || 0;
+    var total = parseFloat(props['Sheet1_Jumlah (Ribu jiwa)']) || 0;
+    var pct   = total > 0 ? (val / total * 100).toFixed(1) : '—';
+    var barW  = range.max > range.min ? ((val - range.min) / (range.max - range.min) * 100).toFixed(1) : 50;
+    var color = getScaleColor(val, range.min, range.max);
+
+    function row(label, v) {
+        return '<div class="pc-row"><div class="pc-key">' + label + '</div><div class="pc-val">' + v + '</div></div>';
+    }
+
+    // Build all age group rows
+    var ageRows = '';
+    FIELDS.slice(1).forEach(function(f) {
+        var av = parseFloat(props[f.key]) || 0;
+        var isActive = f.key === currentField.key;
+        ageRows += '<div class="pc-row" style="' + (isActive ? 'background:rgba(124,179,66,0.06);' : '') + '">' +
+            '<div class="pc-key" style="' + (isActive ? 'color:var(--accent-h);' : '') + '">' + f.short + ' thn</div>' +
+            '<div class="pc-val">' + av.toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' rb</div>' +
+        '</div>';
+    });
+
+    return '<div class="pc-head">' +
+        '<div class="pc-title">Kecamatan ' + name + '</div>' +
+        '<div class="pc-sub">Kabupaten Bantul &middot; D.I. Yogyakarta</div>' +
+    '</div>' +
+    '<div class="pc-body">' +
+        '<div class="pc-row">' +
+            '<div class="pc-key">Tema Aktif</div>' +
+            '<div class="pc-val">' +
+                '<div class="pop-bar-wrap">' +
+                    '<span style="min-width:44px;font-variant-numeric:tabular-nums;">' + val.toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>' +
+                    '<div class="pop-bar-bg"><div class="pop-bar-fill" style="width:' + barW + '%;background:' + color + ';"></div></div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        row('Total Pddk', total.toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' rb jiwa') +
+        row('% thd Total', pct + '%') +
+        ageRows +
+    '</div>' +
+    '<div class="pc-foot">Satuan: Ribu Jiwa &middot; Klik fitur lain untuk data berbeda</div>';
+}
+
+/* ============================================================
+   GEOJSON LAYER
+============================================================ */
+map.createPane('pane_Bantul_1');
+map.getPane('pane_Bantul_1').style.zIndex = 401;
+
+geoLayer = L.geoJson(json_Bantul_1, {
+    pane: 'pane_Bantul_1',
+    interactive: true,
+    style: styleFeature,
+    onEachFeature: function(feature, layer) {
+        var props = feature.properties;
+        layer.on('click', function(e) {
+            L.popup({ maxWidth: 300, maxHeight: 420, className: '' })
+                .setLatLng(e.latlng)
+                .setContent(buildPopup(props))
+                .openOn(map);
+        });
+        layer.on('mouseover', function() {
+            layer.setStyle({ weight: 2, color: '#CFCFCF', fillOpacity: 0.92 });
+            layer.bringToFront();
+        });
+        layer.on('mouseout', function() { geoLayer.resetStyle(layer); });
+    }
+}).addTo(map);
+
+/* ============================================================
+   LEGEND — gradient bar + ranked list
+============================================================ */
+function buildLegend() {
+    var vals  = getFieldValues(currentField.key);
+    var range = getRange(vals);
+    var container = document.getElementById('legend-container');
+
+    // Gradient bar
+    var gradStops = SCALE.map(function(c, i) { return c + ' ' + (i/(SCALE.length-1)*100).toFixed(0)+'%'; }).join(',');
+    var gradHtml = '<div class="legend-choropleth">' +
+        '<div class="legend-gradient-title">' + currentField.label + ' (Ribu Jiwa)</div>' +
+        '<div class="legend-gradient-bar" style="background:linear-gradient(to right,' + gradStops + ');"></div>' +
+        '<div class="legend-gradient-labels">' +
+            '<span>' + range.min.toFixed(2) + '</span>' +
+            '<span>' + ((range.min+range.max)/2).toFixed(2) + '</span>' +
+            '<span>' + range.max.toFixed(2) + '</span>' +
+        '</div>' +
+    '</div>';
+
+    // Ranked list sorted descending
+    var sorted = Object.entries(vals).sort(function(a,b){ return b[1]-a[1]; });
+    var rankHtml = '<div class="legend-rank-list">';
+    sorted.forEach(function(entry, i) {
+        var name = entry[0], val = entry[1];
+        var color = getScaleColor(val, range.min, range.max);
+        rankHtml += '<div class="legend-rank-item" data-name="' + name + '">' +
+            '<div class="legend-rank-swatch" style="background:' + color + ';"></div>' +
+            '<div class="legend-rank-name">' + name + '</div>' +
+            '<div class="legend-rank-val">' + val.toFixed(2) + '</div>' +
+        '</div>';
+    });
+    rankHtml += '</div>';
+
+    container.innerHTML = gradHtml + rankHtml;
+
+    // Click rank item → zoom
+    container.querySelectorAll('.legend-rank-item').forEach(function(el) {
+        el.addEventListener('click', function() {
+            zoomToKecamatan(el.dataset.name);
+        });
+    });
+}
+
+/* ============================================================
+   STATISTICS
+============================================================ */
+function updateStats() {
+    var vals  = getFieldValues(currentField.key);
+    var range = getRange(vals);
+    var arr   = Object.entries(vals);
+    var sum   = arr.reduce(function(s,e){ return s+e[1]; }, 0);
+    var maxE  = arr.reduce(function(a,b){ return a[1]>b[1]?a:b; });
+    var minE  = arr.reduce(function(a,b){ return a[1]<b[1]?a:b; });
+
+    document.getElementById('stat-sum').textContent   = sum.toFixed(2);
+    document.getElementById('stat-max').textContent   = maxE[0] + ' (' + maxE[1].toFixed(2) + ' rb)';
+    document.getElementById('stat-min').textContent   = minE[0] + ' (' + minE[1].toFixed(2) + ' rb)';
+    document.getElementById('stat-theme').textContent = currentField.label;
+    document.getElementById('badge-text').textContent = currentField.label;
+}
+
+/* ============================================================
+   BUILD FIELD SWITCHER BUTTONS
+============================================================ */
+function buildFieldList() {
+    var container = document.getElementById('field-list');
+    container.innerHTML = '';
+    FIELDS.forEach(function(f, idx) {
+        var btn = document.createElement('button');
+        btn.className = 'field-btn' + (idx === 0 ? ' active' : '');
+        btn.dataset.key = f.key;
+        btn.innerHTML =
+            '<div class="fi"></div>' +
+            '<div class="fb-text">' +
+                '<div class="fb-name">' + f.label + '</div>' +
+                '<div class="fb-key">' + f.short + '</div>' +
+            '</div>';
+        btn.addEventListener('click', function() { switchField(f); });
+        container.appendChild(btn);
+    });
+}
+
+/* ============================================================
+   SWITCH FIELD
+============================================================ */
+function switchField(fieldDef) {
+    if (fieldDef.key === currentField.key) return;
+    currentField = fieldDef;
+
+    document.querySelectorAll('.field-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.key === fieldDef.key);
+    });
+
+    geoLayer.eachLayer(function(layer) { geoLayer.resetStyle(layer); });
+    buildLegend();
+    updateStats();
+}
+
+/* ============================================================
+   SEARCH
+============================================================ */
+function handleSearch(query) {
+    var box = document.getElementById('search-results');
+    query = query.trim().toLowerCase();
+    if (!query || query.length < 2) { box.style.display = 'none'; return; }
+
+    var results = [];
+    geoLayer.eachLayer(function(layer) {
+        var name = (layer.feature.properties['WADMKC'] || '').toLowerCase();
+        if (name.includes(query)) results.push(layer);
+    });
+
+    if (!results.length) {
+        box.innerHTML = '<div class="search-result-item">Tidak ditemukan.</div>';
+        box.style.display = 'block'; return;
+    }
+
+    box.innerHTML = results.slice(0,8).map(function(layer) {
+        var p = layer.feature.properties;
+        var name = p['WADMKC'];
+        var total = parseFloat(p['Sheet1_Jumlah (Ribu jiwa)']) || 0;
+        return '<div class="search-result-item" data-name="' + name + '">' +
+            '<strong>Kec. ' + name + '</strong>' +
+            '<span class="search-result-sub">Total: ' + total.toFixed(2) + ' ribu jiwa</span>' +
+        '</div>';
+    }).join('');
+
+    box.querySelectorAll('.search-result-item[data-name]').forEach(function(el) {
+        el.addEventListener('click', function() {
+            document.getElementById('search-results').style.display = 'none';
+            document.getElementById('search-input').value = '';
+            zoomToKecamatan(el.dataset.name);
+        });
+    });
+    box.style.display = 'block';
+}
+
+function zoomToKecamatan(name) {
+    geoLayer.eachLayer(function(layer) {
+        if (layer.feature.properties['WADMKC'] === name) {
+            var bounds = layer.getBounds();
+            map.fitBounds(bounds, { padding: [60,60] });
+            setTimeout(function() {
+                L.popup({ maxWidth: 300, maxHeight: 420 })
+                    .setLatLng(bounds.getCenter())
+                    .setContent(buildPopup(layer.feature.properties))
+                    .openOn(map);
+            }, 350);
+        }
+    });
+}
+
+/* ============================================================
+   SIDEBAR TOGGLE
+============================================================ */
+var sidebarOpen = true;
+function toggleSidebar() {
+    sidebarOpen = !sidebarOpen;
+    document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+    setTimeout(function() { map.invalidateSize(); }, 240);
+}
+
+/* ============================================================
+   WIRE EVENT LISTENERS
+============================================================ */
+document.getElementById('sidebar-toggle').addEventListener('click', toggleSidebar);
+document.getElementById('zoom-in').addEventListener('click', function() { map.zoomIn(); });
+document.getElementById('zoom-out').addEventListener('click', function() { map.zoomOut(); });
+document.getElementById('search-input').addEventListener('input', function() { handleSearch(this.value); });
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#search-wrap')) {
+        document.getElementById('search-results').style.display = 'none';
+    }
+});
+document.querySelectorAll('.basemap-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { switchBasemap(btn.dataset.bm); });
+});
+
+/* ============================================================
+   INIT
+============================================================ */
+buildFieldList();
+buildLegend();
+updateStats();
+
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        var l = document.getElementById('loading');
+        if (!l) return;
+        l.classList.add('hide');
+        setTimeout(function() { l.remove(); }, 300);
+    }, 1300);
+});
+</script>
+</body>
+</html>
