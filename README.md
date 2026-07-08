@@ -1,2 +1,7 @@
 # WEBGIS-KLASIFIKASI-KEPADATAN-BERDASARKAN-UMUR-Kab.-BANTUL
-RESPONSI VDG M Zaki Handyer pembuatan webGIS Peta Kepadatan Penduduk Berdasarkan Umur Kecamatan Bantul
+RESPONSI VDG pembuatan webGIS Peta Demografi Kecamatan Bantul
+Nama    : M Zaki Handyer
+NIT     : 2502010020
+Kelas   : SPIP-A
+Kode    : C
+Absen   : 20
